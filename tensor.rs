@@ -1408,7 +1408,7 @@ mod tests {
     #[test]
     fn test_tensor_create() {
         let t = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
-        assert_eq!(t.shape(), &vec![2, 2]);
+        assert_eq!(*t.shape(), vec![2, 2]);
         assert_eq!(t.numel(), 4);
     }
     
@@ -1418,14 +1418,14 @@ mod tests {
         let b = Tensor::new(vec![5.0, 6.0, 7.0, 8.0], vec![2, 2]).unwrap();
         let c = a.matmul(&b).unwrap();
         // [[1,2],[3,4]] @ [[5,6],[7,8]] = [[19,22],[43,50]]
-        assert_eq!(c.data(), &[19.0, 22.0, 43.0, 50.0]);
+        assert_eq!(&*c.data(), &[19.0, 22.0, 43.0, 50.0]);
     }
     
     #[test]
     fn test_relu() {
         let t = Tensor::from_slice(&[-1.0, 0.0, 1.0, 2.0]);
         let r = t.relu();
-        assert_eq!(r.data(), &[0.0, 0.0, 1.0, 2.0]);
+        assert_eq!(&*r.data(), &[0.0, 0.0, 1.0, 2.0]);
     }
     
     #[test]
@@ -1457,8 +1457,8 @@ mod tests {
         let b = Tensor::new(vec![10.0, 20.0, 30.0], vec![3]).unwrap();
         let c = (&a + &b).unwrap();
         
-        assert_eq!(c.shape(), &vec![2, 3]);
-        assert_eq!(c.data(), &[11.0, 22.0, 33.0, 14.0, 25.0, 36.0]);
+        assert_eq!(*c.shape(), vec![2, 3]);
+        assert_eq!(&*c.data(), &[11.0, 22.0, 33.0, 14.0, 25.0, 36.0]);
     }
     
     #[test]
@@ -1468,8 +1468,8 @@ mod tests {
         let b = Tensor::new(vec![10.0], vec![1]).unwrap();
         let c = (&a * &b).unwrap();
         
-        assert_eq!(c.shape(), &vec![2, 2]);
-        assert_eq!(c.data(), &[10.0, 20.0, 30.0, 40.0]);
+        assert_eq!(*c.shape(), vec![2, 2]);
+        assert_eq!(&*c.data(), &[10.0, 20.0, 30.0, 40.0]);
     }
     
     #[test]
