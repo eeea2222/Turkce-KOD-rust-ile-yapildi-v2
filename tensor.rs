@@ -7,7 +7,7 @@
 use std::fmt;
 use std::collections::HashSet;
 use std::f32::consts; // Added import for consts
-use std::ops::{Add, Sub, Mul, Div, Deref};
+use std::ops::{Add, Sub, Mul, Div};
 use std::rc::Rc;
 use std::cell::{RefCell, Ref, RefMut};
 
@@ -198,7 +198,7 @@ impl Tensor {
     // -------------------------------------------------------------------------
     
     /// Get the shape of the tensor (Ref)
-    pub fn shape(&self) -> Ref<Shape> {
+    pub fn shape(&self) -> Ref<'_, Shape> {
         Ref::map(self.inner.borrow(), |inner| &inner.shape)
     }
     
@@ -213,12 +213,12 @@ impl Tensor {
     }
     
     /// Get raw data reference (Ref)
-    pub fn data(&self) -> Ref<[f32]> {
+    pub fn data(&self) -> Ref<'_, [f32]> {
          Ref::map(self.inner.borrow(), |inner| inner.data.as_slice())
     }
     
     /// Get mutable data reference (RefMut)
-    pub fn data_mut(&self) -> RefMut<Vec<f32>> {
+    pub fn data_mut(&self) -> RefMut<'_, Vec<f32>> {
          RefMut::map(self.inner.borrow_mut(), |inner| &mut inner.data)
     }
     
@@ -233,8 +233,8 @@ impl Tensor {
         let mut inner = self.inner.borrow_mut();
         if inner.data.len() != new_data.len() {
             return Err(TensorError::ShapeMismatch {
-                expected: inner.data.len(),
-                got: new_data.len(),
+                expected: vec![inner.data.len()],
+                got: vec![new_data.len()],
             });
         }
         inner.data.copy_from_slice(new_data);
@@ -892,7 +892,7 @@ impl Tensor {
     pub fn var(&self) -> Tensor {
         let mean = self.mean();
         // (x - mean)^2
-        let diff = self.sub_scalar(mean.item()); // Note: using item() breaks graph here?
+        let _diff = self.sub_scalar(mean.item()); // Note: using item() breaks graph here?
         // Wait, self - mean (tensor) broadcast?
         // I haven't implemented broadcast sub.
         // But mean is scalar Tensor.

@@ -213,7 +213,7 @@ impl VirtualKeyboard {
                             };
                             
                             let button = egui::Button::new(
-                                egui::RichText::new(*key).size(18.0)
+                                egui::RichText::new(key).size(18.0)
                             )
                             .min_size(egui::vec2(button_width, 40.0));
                             
