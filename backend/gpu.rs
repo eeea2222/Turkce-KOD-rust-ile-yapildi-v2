@@ -786,13 +786,107 @@ impl ComputeBackend for GpuBackend {
     }
     
     fn layer_norm(&self, x: &Tensor, gamma: &Tensor, beta: &Tensor, eps: f32) -> TensorResult<Tensor> {
-        // TODO: Implement GPU layer norm using shaders::LAYERNORM
-        x.layer_norm(gamma, beta, eps)
+        if x.ndim() != 2 {
+            // Fall back to CPU for non-2D tensors
+            return x.layer_norm(gamma, beta, eps);
+        }
+        
+        let (rows, cols) = (x.shape()[0], x.shape()[1]);
+        let pipeline = self.context.get_or_create_pipeline(shaders::LAYERNORM, "layernorm");
+        
+        #[repr(C)]
+        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+        struct Params { rows: u32, cols: u32, eps: f32 }
+        
+        let params = Params { rows: rows as u32, cols: cols as u32, eps };
+        let params_buffer = self.context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::bytes_of(&params),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
+        
+        let in_buffer = self.context.create_buffer(&x.data(), wgpu::BufferUsages::STORAGE);
+        let gamma_buffer = self.context.create_buffer(&gamma.data(), wgpu::BufferUsages::STORAGE);
+        let beta_buffer = self.context.create_buffer(&beta.data(), wgpu::BufferUsages::STORAGE);
+        let out_buffer = self.context.create_empty_buffer(
+            x.numel(),
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        );
+        
+        let bind_group = self.context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &[
+                wgpu::BindGroupEntry { binding: 0, resource: params_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 1, resource: in_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 2, resource: gamma_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 3, resource: beta_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 4, resource: out_buffer.as_entire_binding() },
+            ],
+        });
+        
+        let mut encoder = self.context.device.create_command_encoder(&Default::default());
+        {
+            let mut pass = encoder.begin_compute_pass(&Default::default());
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &bind_group, &[]);
+            pass.dispatch_workgroups(((rows + 255) / 256) as u32, 1, 1);
+        }
+        self.context.queue.submit(Some(encoder.finish()));
+        
+        let result = self.context.read_buffer(&out_buffer, x.numel());
+        Tensor::new(result, vec![rows, cols])
     }
     
     fn rms_norm(&self, x: &Tensor, weight: &Tensor, eps: f32) -> TensorResult<Tensor> {
-        // TODO: Implement GPU RMS norm using shaders::RMSNORM
-        x.rms_norm(weight, eps)
+        if x.ndim() != 2 {
+            // Fall back to CPU for non-2D tensors
+            return x.rms_norm(weight, eps);
+        }
+        
+        let (rows, cols) = (x.shape()[0], x.shape()[1]);
+        let pipeline = self.context.get_or_create_pipeline(shaders::RMSNORM, "rmsnorm");
+        
+        #[repr(C)]
+        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+        struct Params { rows: u32, cols: u32, eps: f32 }
+        
+        let params = Params { rows: rows as u32, cols: cols as u32, eps };
+        let params_buffer = self.context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::bytes_of(&params),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
+        
+        let in_buffer = self.context.create_buffer(&x.data(), wgpu::BufferUsages::STORAGE);
+        let weight_buffer = self.context.create_buffer(&weight.data(), wgpu::BufferUsages::STORAGE);
+        let out_buffer = self.context.create_empty_buffer(
+            x.numel(),
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        );
+        
+        let bind_group = self.context.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &[
+                wgpu::BindGroupEntry { binding: 0, resource: params_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 1, resource: in_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 2, resource: weight_buffer.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 3, resource: out_buffer.as_entire_binding() },
+            ],
+        });
+        
+        let mut encoder = self.context.device.create_command_encoder(&Default::default());
+        {
+            let mut pass = encoder.begin_compute_pass(&Default::default());
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &bind_group, &[]);
+            pass.dispatch_workgroups(((rows + 255) / 256) as u32, 1, 1);
+        }
+        self.context.queue.submit(Some(encoder.finish()));
+        
+        let result = self.context.read_buffer(&out_buffer, x.numel());
+        Tensor::new(result, vec![rows, cols])
     }
     
     // Reductions (CPU for now - GPU reductions need parallel reduction algorithm)
