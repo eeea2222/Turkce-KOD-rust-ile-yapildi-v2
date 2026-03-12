@@ -1241,3 +1241,39 @@ impl Interpreter {
         Ok(result.unwrap_or(Value::None))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::lexer::Lexer;
+    use crate::parser::Parser;
+    use super::*;
+
+    /// Helper: run Turkish code and return interpreter output
+    fn run_code(source: &str) -> String {
+        let mut lexer = Lexer::new(source);
+        let tokens = lexer.tokenize().unwrap();
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
+        let mut interpreter = Interpreter::new();
+        interpreter.execute(&ast).unwrap();
+        interpreter.get_output().join("\n")
+    }
+
+    #[test]
+    fn test_degil_true_becomes_false() {
+        let output = run_code("mantıksalv x = doğru\nyaz değil x");
+        assert!(output.contains("yanlış"), "Expected 'yanlış' but got: {}", output);
+    }
+
+    #[test]
+    fn test_degil_false_becomes_true() {
+        let output = run_code("mantıksalv x = yanlış\nyaz değil x");
+        assert!(output.contains("doğru"), "Expected 'doğru' but got: {}", output);
+    }
+
+    #[test]
+    fn test_negation_integer() {
+        let output = run_code("sayıv x = 5\nyaz -x");
+        assert!(output.contains("-5"), "Expected '-5' but got: {}", output);
+    }
+}

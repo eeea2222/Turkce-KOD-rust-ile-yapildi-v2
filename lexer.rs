@@ -24,6 +24,7 @@ pub enum Token {
     // Keywords - Control flow
     Eger,     // eğer - if
     Degilse,  // değilse - else
+    Degil,    // değil - not (logical negation)
     Tekrar,   // tekrar - repeat
     Iken,     // iken - while
     HerElemanIcin, // her_eleman_için - for each
@@ -172,6 +173,8 @@ fn get_keywords() -> &'static HashMap<&'static str, Token> {
         m.insert("eger", Token::Eger);
         m.insert("değilse", Token::Degilse);
         m.insert("degilse", Token::Degilse);
+        m.insert("değil", Token::Degil);
+        m.insert("degil", Token::Degil);
         m.insert("tekrar", Token::Tekrar);
         m.insert("iken", Token::Iken);
         m.insert("her_eleman_için", Token::HerElemanIcin);
@@ -641,5 +644,14 @@ mod tests {
         assert!(matches!(tokens[2].token, Token::Tekrar));
         assert!(matches!(tokens[3].token, Token::Boolean(true)));
         assert!(matches!(tokens[4].token, Token::Boolean(false)));
+    }
+
+    #[test]
+    fn test_degil_keyword() {
+        let mut lexer = Lexer::new("değil degil");
+        let tokens = lexer.tokenize().unwrap();
+        
+        assert!(matches!(tokens[0].token, Token::Degil));
+        assert!(matches!(tokens[1].token, Token::Degil));
     }
 }

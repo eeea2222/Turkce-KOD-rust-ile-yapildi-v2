@@ -926,7 +926,10 @@ impl Parser {
     fn parse_identifier_statement(&mut self) -> TurkceKodResult<Statement> {
         let name = match &self.current().token {
             Token::Identifier(n) => n.clone(),
-            _ => unreachable!(),
+            _ => return Err(TurkceKodError::syntax_error(
+                self.current().line,
+                format!("Tanımlayıcı bekleniyordu, '{:?}' bulundu", self.current().token),
+            )),
         };
         self.advance();
 
@@ -1110,6 +1113,15 @@ impl Parser {
             });
         }
 
+        if self.check(&Token::Degil) {
+            self.advance();
+            let operand = self.parse_unary()?;
+            return Ok(Expression::Unary {
+                operator: UnaryOp::Not,
+                operand: Box::new(operand),
+            });
+        }
+
         self.parse_primary()
     }
 
@@ -1248,7 +1260,10 @@ impl Parser {
                     Token::GpuLayernorm => GpuOperation::LayerNorm,
                     Token::GpuRmsnorm => GpuOperation::RmsNorm,
                     Token::GpuTranspoz => GpuOperation::Transpose,
-                    _ => unreachable!(),
+                    _ => return Err(TurkceKodError::syntax_error(
+                        self.current().line,
+                        format!("Beklenmeyen GPU işlemi: '{:?}'", self.current().token),
+                    )),
                 };
                 self.advance(); // consume gpu op
                 
