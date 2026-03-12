@@ -500,6 +500,11 @@ fn get_gpu() -> Result<&'static GpuContext, String> {
 // GPU BACKEND
 // =============================================================================
 
+/// GPU normalization parameters (shared by LayerNorm and RmsNorm)
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct NormParams { rows: u32, cols: u32, eps: f32 }
+
 /// GPU compute backend using WebGPU
 pub struct GpuBackend {
     context: &'static GpuContext,
@@ -794,11 +799,7 @@ impl ComputeBackend for GpuBackend {
         let (rows, cols) = (x.shape()[0], x.shape()[1]);
         let pipeline = self.context.get_or_create_pipeline(shaders::LAYERNORM, "layernorm");
         
-        #[repr(C)]
-        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-        struct Params { rows: u32, cols: u32, eps: f32 }
-        
-        let params = Params { rows: rows as u32, cols: cols as u32, eps };
+        let params = NormParams { rows: rows as u32, cols: cols as u32, eps };
         let params_buffer = self.context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::bytes_of(&params),
@@ -847,11 +848,7 @@ impl ComputeBackend for GpuBackend {
         let (rows, cols) = (x.shape()[0], x.shape()[1]);
         let pipeline = self.context.get_or_create_pipeline(shaders::RMSNORM, "rmsnorm");
         
-        #[repr(C)]
-        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-        struct Params { rows: u32, cols: u32, eps: f32 }
-        
-        let params = Params { rows: rows as u32, cols: cols as u32, eps };
+        let params = NormParams { rows: rows as u32, cols: cols as u32, eps };
         let params_buffer = self.context.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::bytes_of(&params),
