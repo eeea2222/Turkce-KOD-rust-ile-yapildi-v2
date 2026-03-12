@@ -558,11 +558,6 @@ impl Parser {
                 self.advance();
                 Statement::CreateAiDirs
             },
-            Token::GeriYayilim => {
-                self.advance();
-                let name = self.expect_identifier("Geri yayılım için değişken adı bekleniyor")?;
-                Statement::Backward { variable: name }
-            },
             
             // Standalone random tensor: rastgele name [shape]
             Token::Rastgele => self.parse_random_tensor()?,

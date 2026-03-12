@@ -95,53 +95,7 @@ fn gpu_error(e: impl std::fmt::Display) -> TurkceKodError {
     TurkceKodError::GpuHatasi { message: e.to_string() }
 }
 
-// =============================================================================
-// Helper Macros for Reducing Repetitive Code
-// =============================================================================
 
-/// Get a tensor from storage or return TanimlanmayanDegisken error
-macro_rules! get_tensor {
-    ($self:expr, $name:expr) => {
-        $self.tensors.get($name).ok_or_else(|| 
-            TurkceKodError::TanimlanmayanDegisken { name: $name.clone() }
-        )?
-    };
-}
-
-/// Get a mutable tensor from storage or return error
-macro_rules! get_tensor_mut {
-    ($self:expr, $name:expr) => {
-        $self.tensors.get_mut($name).ok_or_else(|| 
-            TurkceKodError::TanimlanmayanDegisken { name: $name.clone() }
-        )?
-    };
-}
-
-/// Get a variable from storage or return error
-macro_rules! get_var {
-    ($self:expr, $name:expr) => {
-        $self.variables.get($name).ok_or_else(|| 
-            TurkceKodError::TanimlanmayanDegisken { name: $name.clone() }
-        )?
-    };
-}
-
-/// Get a list from storage or return error
-macro_rules! get_list {
-    ($self:expr, $name:expr) => {
-        $self.lists.get_mut($name).ok_or_else(|| 
-            TurkceKodError::TanimlanmayanListe { name: $name.clone() }
-        )?
-    };
-}
-
-/// Print and store output line
-macro_rules! output_line {
-    ($self:expr, $line:expr) => {{
-        $self.output.push($line.clone());
-        println!("{}", $line);
-    }};
-}
 
 /// The interpreter that executes Türkçe Kod programs
 pub struct Interpreter {
@@ -930,7 +884,7 @@ impl Interpreter {
                                     use std::io::BufRead;
                                     for line_result in reader.lines() {
                                         if let Ok(line) = line_result {
-                                            if let Ok(json_val) = serde_json::from_str::<serde_json::Value>(&line) {
+                                            if let Ok(_json_val) = serde_json::from_str::<serde_json::Value>(&line) {
                                                 // Convert JSON value to Türkçe Kod Value
                                                 // For now, simpler implementation: store full JSON object as String
                                                 loaded_data.push(Value::String(line));
@@ -1002,7 +956,7 @@ impl Interpreter {
                 // 2. If it's a container (Window), execute commands (children). 
                 // 3. If it's a Button, store commands as callback.
                 
-                let mut callback: Vec<Statement> = Vec::new(); // Explicit type needed
+                let _callback: Vec<Statement> = Vec::new(); // Explicit type needed
                 let mut widget = GuiWidget::new(id.clone(), widget_type.clone(), text.clone(), Vec::new());
                 
                 // Initialize default properties
